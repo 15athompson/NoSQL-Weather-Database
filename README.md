@@ -28,7 +28,7 @@ This advanced NoSQL database system addresses real-world challenges in meteorolo
 - **Technicians**: Maintenance personnel with activity logging and station assignment tracking
 - **Administrators**: Full system access with audit trail and user management capabilities
 
-## 🛠 Technology Stack
+## Technology Stack
 
 - **Database**: MongoDB 4.4+ with advanced aggregation framework
 - **Backend**: Python 3.8+, PyMongo driver
