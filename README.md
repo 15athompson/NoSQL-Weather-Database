@@ -1,5 +1,3 @@
-# NoSQL-Weather-Database
-
 # NoSQL Weather Database
 
 A flexible, scalable weather data storage solution using NoSQL technologies. This project provides a backend system for ingesting, storing, and querying weather data, suitable for use in analytics, reporting, or powering weather-driven applications.
