@@ -793,14 +793,3 @@ def validate_weather_data(data):
             raise ValueError(f"Missing required field: {field}")
 ```
 
-## Additional Resources
-
-MongoDB Official Documentation: https://docs.mongodb.com/
-PyMongo Documentation: https://pymongo.readthedocs.io/
-Weather Data Sources:
-
-Open-Meteo API: https://open-meteo.com/
-Windy.com Radiosonde Data: https://community.windy.com/
-
-
-Geospatial Reference: https://geojson.org/
