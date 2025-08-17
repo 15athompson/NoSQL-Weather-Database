@@ -82,22 +82,6 @@ The database schema is flexible but typically includes:
 - Integrate other NoSQL databases (Cassandra, DynamoDB, etc.).
 - Enhance analytics or visualization modules.
 
-## Contributing
 
-Contributions are welcome! Please open issues or pull requests for bug fixes, new features, or documentation improvements.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/my-feature`)
-3. Commit your changes (`git commit -am 'Add new feature'`)
-4. Push to the branch (`git push origin feature/my-feature`)
-5. Open a pull request
-
-## License
-
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
-
-## Contact
-
-Created by [15athompson](https://github.com/15athompson).
 
 ---
