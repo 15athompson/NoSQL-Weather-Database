@@ -1,0 +1,1264 @@
+=== Test read and update of the status field of Weather Stations ===
+=== Weather Stations with status of Offline ===
+
+Search criteria for weather_stations.find():
+{'status': 'Offline'}
+
+Results:
+No results found.
+
+=== Update the weather station WS-NEW002 status to Offline ===
+{'_id': 'WS-NEW002'}
+By applying the update operation:
+{'$set': {'status': 'Offline'}}
+Modified 1 document
+Status updated
+
+=== Update the weather station WS-LIV003 status to Offline ===
+{'_id': 'WS-LIV003'}
+By applying the update operation:
+{'$set': {'status': 'Offline'}}
+Modified 1 document
+Status updated
+=== Weather Stations with status of Offline ===
+
+Search criteria for weather_stations.find():
+{'status': 'Offline'}
+
+Results:
+{'_id': 'WS-LIV003',
+ 'latest_maintenance': {'report': 'Cleaned solar panel.',
+                        'tech_id': 'T-003',
+                        'timestamp': datetime.datetime(2025, 4, 3, 12, 17)},
+ 'location': {'coordinates': [-2.9142761, 53.391914], 'type': 'Point'},
+ 'name': 'Liverpool',
+ 'owner': {'contact': 'Mr Simon Jones',
+           'email': 'stations@metoffice.gov.uk',
+           'name': 'Met Office',
+           'owner_type': 'Government',
+           'telephone': '03709000100',
+           'user_id': 'metoff1'},
+ 'status': 'Offline'}
+{'_id': 'WS-NEW002',
+ 'latest_maintenance': {'report': 'Repaired housing.',
+                        'tech_id': 'T-005',
+                        'timestamp': datetime.datetime(2025, 4, 2, 10, 30)},
+ 'location': {'coordinates': [-1.6103516, 54.938488], 'type': 'Point'},
+ 'name': 'Newcastle',
+ 'owner': {'contact': 'Mr Simon Jones',
+           'email': 'stations@metoffice.gov.uk',
+           'name': 'Met Office',
+           'owner_type': 'Government',
+           'telephone': '03709000100',
+           'user_id': 'metoff1'},
+ 'status': 'Offline'}
+
+=== Update the weather station WS-NEW002 status to Online ===
+{'_id': 'WS-NEW002'}
+By applying the update operation:
+{'$set': {'status': 'Online'}}
+Modified 1 document
+Status updated
+
+=== Update the weather station WS-LIV003 status to Online ===
+{'_id': 'WS-LIV003'}
+By applying the update operation:
+{'$set': {'status': 'Online'}}
+Modified 1 document
+Status updated
+
+=================================================================================================================
+
+
+=== Scenario to create a new weather report, add hourly readings, and compute day summary ===
+
+Inserting weather report for London 10th April 2025 - for each test, using 10th April 2025 as the modification date
+
+Using weather_reports.insert_one() to add a weather report
+Document being inserted:
+{'date': datetime.datetime(2025, 4, 10, 0, 0),
+ 'last_modified': datetime.datetime(2025, 4, 10, 0, 0),
+ 'location': {'coordinates': [-0.1630249, 51.493847], 'type': 'Point'},
+ 'owner': {'name': 'Met Office',
+           'owner_type': 'Government',
+           'user_id': 'metoff1'},
+ 'readings': [],
+ 'station': {'name': 'London', 'station_id': 'WS-LON002'},
+ 'version': 1}
+Inserted 68405d7a8f20941262a066e9
+
+Inserting weather station reading for London 10th April 2025 - midnight
+
+Using weather_reports.update_one() to add a reading to the weather report, using this filter:
+{'_id': ObjectId('68405d7a8f20941262a066e9')}
+And this update operation:
+{'$inc': {'version': 1},
+ '$push': {'readings': {'cloud_cover': 25,
+                        'dewpoint': 2.5,
+                        'humidity': 76,
+                        'precip': 0,
+                        'pressure': 1032.7,
+                        'sample_duration': 3600,
+                        'soil': {'0_to_7cm': {'moisture': 0.012, 'temp': 9.6},
+                                 '100_to_255cm': {'moisture': 0.291, 'temp': 8},
+                                 '28_to_100cm': {'moisture': 0.28,
+                                                 'temp': 10.3},
+                                 '7_to_28cm': {'moisture': 0.126,
+                                               'temp': 11.7}},
+                        'sunshine': 0,
+                        'temp': 6.5,
+                        'timestamp': datetime.datetime(2025, 4, 10, 0, 0),
+                        'wind_direction': 43,
+                        'wind_speed': 2.62}},
+ '$set': {'last_modified': datetime.datetime(2025, 4, 10, 0, 0)}}
+
+Modified 1 document
+
+Computing the day_summary sub-document using the pipeline:
+[{'$match': {'_id': ObjectId('68405d7a8f20941262a066e9')}},
+ {'$unwind': '$readings'},
+ {'$group': {'_id': '$_id',
+             'cloud_cover_mean': {'$avg': '$readings.cloud_cover'},
+             'dewpoint_mean': {'$avg': '$readings.dewpoint'},
+             'humidity_max': {'$max': '$readings.humidity'},
+             'humidity_mean': {'$avg': '$readings.humidity'},
+             'humidity_min': {'$min': '$readings.humidity'},
+             'precip_sum': {'$sum': '$readings.precip'},
+             'pressure_max': {'$max': '$readings.pressure'},
+             'pressure_mean': {'$avg': '$readings.pressure'},
+             'pressure_min': {'$min': '$readings.pressure'},
+             'sunshine': {'$sum': '$readings.sunshine'},
+             'temp_max': {'$max': '$readings.temp'},
+             'temp_mean': {'$avg': '$readings.temp'},
+             'temp_min': {'$min': '$readings.temp'},
+             'wind_speed_max': {'$max': '$readings.wind_speed'},
+             'wind_speed_mean': {'$avg': '$readings.wind_speed'},
+             'wind_speed_min': {'$min': '$readings.wind_speed'}}}]
+Aggregation found 1 documents.
+
+Add the day_summary into the weather_report using update_one() and increment the version number, using this filter:
+{'_id': ObjectId('68405d7a8f20941262a066e9')}
+And this update operation:
+{'$inc': {'version': 1},
+ '$set': {'day_summary': {'cloud_cover_mean': 25.0,
+                          'dewpoint_mean': 2.5,
+                          'humidity_max': 76,
+                          'humidity_mean': 76.0,
+                          'humidity_min': 76,
+                          'precip_sum': 0,
+                          'pressure_max': 1032.7,
+                          'pressure_mean': 1032.7,
+                          'pressure_min': 1032.7,
+                          'sunshine': 0,
+                          'temp_max': 6.5,
+                          'temp_mean': 6.5,
+                          'temp_min': 6.5,
+                          'wind_speed_max': 2.62,
+                          'wind_speed_mean': 2.62,
+                          'wind_speed_min': 2.62}}}
+
+Modified 1 document
+
+Inserting weather station reading for London 10th April 2025 - 1am
+
+Using weather_reports.update_one() to add a reading to the weather report, using this filter:
+{'_id': ObjectId('68405d7a8f20941262a066e9')}
+And this update operation:
+{'$inc': {'version': 1},
+ '$push': {'readings': {'cloud_cover': 24,
+                        'dewpoint': 1.8,
+                        'humidity': 75,
+                        'precip': 0,
+                        'pressure': 1032.7,
+                        'sample_duration': 3600,
+                        'soil': {'0_to_7cm': {'moisture': 0.01, 'temp': 8.9},
+                                 '100_to_255cm': {'moisture': 0.291, 'temp': 8},
+                                 '28_to_100cm': {'moisture': 0.28,
+                                                 'temp': 10.3},
+                                 '7_to_28cm': {'moisture': 0.126,
+                                               'temp': 11.7}},
+                        'sunshine': 0,
+                        'temp': 6,
+                        'timestamp': datetime.datetime(2025, 4, 10, 1, 0),
+                        'wind_direction': 38,
+                        'wind_speed': 2.21}},
+ '$set': {'last_modified': datetime.datetime(2025, 4, 10, 1, 0)}}
+
+Modified 1 document
+
+Computing the day_summary sub-document using the pipeline:
+[{'$match': {'_id': ObjectId('68405d7a8f20941262a066e9')}},
+ {'$unwind': '$readings'},
+ {'$group': {'_id': '$_id',
+             'cloud_cover_mean': {'$avg': '$readings.cloud_cover'},
+             'dewpoint_mean': {'$avg': '$readings.dewpoint'},
+             'humidity_max': {'$max': '$readings.humidity'},
+             'humidity_mean': {'$avg': '$readings.humidity'},
+             'humidity_min': {'$min': '$readings.humidity'},
+             'precip_sum': {'$sum': '$readings.precip'},
+             'pressure_max': {'$max': '$readings.pressure'},
+             'pressure_mean': {'$avg': '$readings.pressure'},
+             'pressure_min': {'$min': '$readings.pressure'},
+             'sunshine': {'$sum': '$readings.sunshine'},
+             'temp_max': {'$max': '$readings.temp'},
+             'temp_mean': {'$avg': '$readings.temp'},
+             'temp_min': {'$min': '$readings.temp'},
+             'wind_speed_max': {'$max': '$readings.wind_speed'},
+             'wind_speed_mean': {'$avg': '$readings.wind_speed'},
+             'wind_speed_min': {'$min': '$readings.wind_speed'}}}]
+Aggregation found 1 documents.
+
+Add the day_summary into the weather_report using update_one() and increment the version number, using this filter:
+{'_id': ObjectId('68405d7a8f20941262a066e9')}
+And this update operation:
+{'$inc': {'version': 1},
+ '$set': {'day_summary': {'cloud_cover_mean': 24.5,
+                          'dewpoint_mean': 2.15,
+                          'humidity_max': 76,
+                          'humidity_mean': 75.5,
+                          'humidity_min': 75,
+                          'precip_sum': 0,
+                          'pressure_max': 1032.7,
+                          'pressure_mean': 1032.7,
+                          'pressure_min': 1032.7,
+                          'sunshine': 0,
+                          'temp_max': 6.5,
+                          'temp_mean': 6.25,
+                          'temp_min': 6,
+                          'wind_speed_max': 2.62,
+                          'wind_speed_mean': 2.415,
+                          'wind_speed_min': 2.21}}}
+
+Modified 1 document
+
+Inserting weather station reading for London 10th April 2025 - 2am
+
+Using weather_reports.update_one() to add a reading to the weather report, using this filter:
+{'_id': ObjectId('68405d7a8f20941262a066e9')}
+And this update operation:
+{'$inc': {'version': 1},
+ '$push': {'readings': {'cloud_cover': 44,
+                        'dewpoint': 2,
+                        'humidity': 77,
+                        'precip': 1.1,
+                        'pressure': 1032.5,
+                        'sample_duration': 3600,
+                        'soil': {'0_to_7cm': {'moisture': 0.01, 'temp': 8.1},
+                                 '100_to_255cm': {'moisture': 0.291, 'temp': 8},
+                                 '28_to_100cm': {'moisture': 0.279,
+                                                 'temp': 10.3},
+                                 '7_to_28cm': {'moisture': 0.126,
+                                               'temp': 11.6}},
+                        'sunshine': 0,
+                        'temp': 5.6,
+                        'timestamp': datetime.datetime(2025, 4, 10, 2, 0),
+                        'wind_direction': 35,
+                        'wind_speed': 2.08}},
+ '$set': {'last_modified': datetime.datetime(2025, 4, 10, 2, 0)}}
+
+Modified 1 document
+
+Computing the day_summary sub-document using the pipeline:
+[{'$match': {'_id': ObjectId('68405d7a8f20941262a066e9')}},
+ {'$unwind': '$readings'},
+ {'$group': {'_id': '$_id',
+             'cloud_cover_mean': {'$avg': '$readings.cloud_cover'},
+             'dewpoint_mean': {'$avg': '$readings.dewpoint'},
+             'humidity_max': {'$max': '$readings.humidity'},
+             'humidity_mean': {'$avg': '$readings.humidity'},
+             'humidity_min': {'$min': '$readings.humidity'},
+             'precip_sum': {'$sum': '$readings.precip'},
+             'pressure_max': {'$max': '$readings.pressure'},
+             'pressure_mean': {'$avg': '$readings.pressure'},
+             'pressure_min': {'$min': '$readings.pressure'},
+             'sunshine': {'$sum': '$readings.sunshine'},
+             'temp_max': {'$max': '$readings.temp'},
+             'temp_mean': {'$avg': '$readings.temp'},
+             'temp_min': {'$min': '$readings.temp'},
+             'wind_speed_max': {'$max': '$readings.wind_speed'},
+             'wind_speed_mean': {'$avg': '$readings.wind_speed'},
+             'wind_speed_min': {'$min': '$readings.wind_speed'}}}]
+Aggregation found 1 documents.
+
+Add the day_summary into the weather_report using update_one() and increment the version number, using this filter:
+{'_id': ObjectId('68405d7a8f20941262a066e9')}
+And this update operation:
+{'$inc': {'version': 1},
+ '$set': {'day_summary': {'cloud_cover_mean': 31.0,
+                          'dewpoint_mean': 2.1,
+                          'humidity_max': 77,
+                          'humidity_mean': 76.0,
+                          'humidity_min': 75,
+                          'precip_sum': 1.1,
+                          'pressure_max': 1032.7,
+                          'pressure_mean': 1032.6333333333334,
+                          'pressure_min': 1032.5,
+                          'sunshine': 0,
+                          'temp_max': 6.5,
+                          'temp_mean': 6.033333333333334,
+                          'temp_min': 5.6,
+                          'wind_speed_max': 2.62,
+                          'wind_speed_mean': 2.3033333333333332,
+                          'wind_speed_min': 2.08}}}
+
+Modified 1 document
+
+Weather Report:
+{'_id': ObjectId('68405d7a8f20941262a066e9'),
+ 'date': datetime.datetime(2025, 4, 10, 0, 0),
+ 'day_summary': {'cloud_cover_mean': 31.0,
+                 'dewpoint_mean': 2.1,
+                 'humidity_max': 77,
+                 'humidity_mean': 76.0,
+                 'humidity_min': 75,
+                 'precip_sum': 1.1,
+                 'pressure_max': 1032.7,
+                 'pressure_mean': 1032.6333333333334,
+                 'pressure_min': 1032.5,
+                 'sunshine': 0,
+                 'temp_max': 6.5,
+                 'temp_mean': 6.033333333333334,
+                 'temp_min': 5.6,
+                 'wind_speed_max': 2.62,
+                 'wind_speed_mean': 2.3033333333333332,
+                 'wind_speed_min': 2.08},
+ 'last_modified': datetime.datetime(2025, 4, 10, 2, 0),
+ 'location': {'coordinates': [-0.1630249, 51.493847], 'type': 'Point'},
+ 'owner': {'name': 'Met Office',
+           'owner_type': 'Government',
+           'user_id': 'metoff1'},
+ 'readings': [{'cloud_cover': 25,
+               'dewpoint': 2.5,
+               'humidity': 76,
+               'precip': 0,
+               'pressure': 1032.7,
+               'sample_duration': 3600,
+               'soil': {'0_to_7cm': {'moisture': 0.012, 'temp': 9.6},
+                        '100_to_255cm': {'moisture': 0.291, 'temp': 8},
+                        '28_to_100cm': {'moisture': 0.28, 'temp': 10.3},
+                        '7_to_28cm': {'moisture': 0.126, 'temp': 11.7}},
+               'sunshine': 0,
+               'temp': 6.5,
+               'timestamp': datetime.datetime(2025, 4, 10, 0, 0),
+               'wind_direction': 43,
+               'wind_speed': 2.62},
+              {'cloud_cover': 24,
+               'dewpoint': 1.8,
+               'humidity': 75,
+               'precip': 0,
+               'pressure': 1032.7,
+               'sample_duration': 3600,
+               'soil': {'0_to_7cm': {'moisture': 0.01, 'temp': 8.9},
+                        '100_to_255cm': {'moisture': 0.291, 'temp': 8},
+                        '28_to_100cm': {'moisture': 0.28, 'temp': 10.3},
+                        '7_to_28cm': {'moisture': 0.126, 'temp': 11.7}},
+               'sunshine': 0,
+               'temp': 6,
+               'timestamp': datetime.datetime(2025, 4, 10, 1, 0),
+               'wind_direction': 38,
+               'wind_speed': 2.21},
+              {'cloud_cover': 44,
+               'dewpoint': 2,
+               'humidity': 77,
+               'precip': 1.1,
+               'pressure': 1032.5,
+               'sample_duration': 3600,
+               'soil': {'0_to_7cm': {'moisture': 0.01, 'temp': 8.1},
+                        '100_to_255cm': {'moisture': 0.291, 'temp': 8},
+                        '28_to_100cm': {'moisture': 0.279, 'temp': 10.3},
+                        '7_to_28cm': {'moisture': 0.126, 'temp': 11.6}},
+               'sunshine': 0,
+               'temp': 5.6,
+               'timestamp': datetime.datetime(2025, 4, 10, 2, 0),
+               'wind_direction': 35,
+               'wind_speed': 2.08}],
+ 'station': {'name': 'London', 'station_id': 'WS-LON002'},
+ 'version': 7}
+
+=================================================================================================================
+
+
+=== Count Weather Report for Station WS-WW1001 ===
+
+Filter for weather_reports.count_documents():
+{'station.station_id': 'WS-WW1001'}
+830 documents found
+
+=================================================================================================================
+
+
+=== Delete Weather Report for Station WS-WW1001 from 2024-02-01 to 2024-02-04 ===
+
+Filter for weather_reports.delete_many():
+{'date': {'$gte': datetime.datetime(2024, 2, 1, 0, 0),
+          '$lte': datetime.datetime(2024, 2, 4, 0, 0)},
+ 'station.station_id': 'WS-WW1001'}
+Deleted 4 documents
+
+=================================================================================================================
+
+
+=== Count Weather Report for Station WS-WW1001 ===
+
+Filter for weather_reports.count_documents():
+{'station.station_id': 'WS-WW1001'}
+826 documents found
+
+=================================================================================================================
+
+
+=== Rename 'Cambridge University' to 'Science Dept. Cambridge University' ===
+First get the Distinct owner names in the weather_reports collection
+
+Using weather_reports.distinct("owner.name") to get distinct owner names in weather_reports:
+- Cambridge University
+- Gatwick Airport
+- Heathrow Airport
+- Met Office
+- Paul S
+- Simon
+Show the version number and last modified date of a weather report BEFORE update
+Latest weather report for camUni:
+{'_id': ObjectId('68405d3a3aaf52ade9dca5a4'),
+ 'date': datetime.datetime(2025, 4, 9, 0, 0),
+ 'last_modified': datetime.datetime(2025, 4, 9, 23, 59, 59),
+ 'owner': {'name': 'Cambridge University',
+           'owner_type': 'University',
+           'user_id': 'camUni'},
+ 'version': 1}
+
+Using weather_reports.update_many() to rename the owner of the documents matching:
+{'owner.user_id': 'camUni'}
+By applying the update operation:
+{'$inc': {'version': 1},
+ '$set': {'last_modified': datetime.datetime(2025, 5, 1, 15, 51, 38),
+          'owner.name': 'Science Dept. Cambridge University'}}
+
+Modified 830 documents
+Show the version number and last modified date of the weather report AFTER update
+Latest weather report for camUni:
+{'_id': ObjectId('68405d3a3aaf52ade9dca5a4'),
+ 'date': datetime.datetime(2025, 4, 9, 0, 0),
+ 'last_modified': datetime.datetime(2025, 5, 1, 15, 51, 38),
+ 'owner': {'name': 'Science Dept. Cambridge University',
+           'owner_type': 'University',
+           'user_id': 'camUni'},
+ 'version': 2}
+
+Get the Distinct owner names again to prove the update has applied to all documents
+
+Using weather_reports.distinct("owner.name") to get distinct owner names in weather_reports:
+- Gatwick Airport
+- Heathrow Airport
+- Met Office
+- Paul S
+- Science Dept. Cambridge University
+- Simon
+Now get the Distinct owner names in the weather_stations collection
+
+Using weather_stations.distinct("owner.name") to get distinct owner names in weather_stations:
+- Cambridge University
+- Gatwick Airport
+- Heathrow Airport
+- Met Office
+- Paul S
+
+Using weather_stations.update_many() to rename the owner of the documents matching:
+{'owner.user_id': 'camUni'}
+By applying the update operation:
+{'$set': {'owner.name': 'Science Dept. Cambridge University'}}
+
+Modified 1 documents
+
+Get the Distinct owner names again to prove the update has applied to all documents
+
+Using weather_stations.distinct("owner.name") to get distinct owner names in weather_stations:
+- Gatwick Airport
+- Heathrow Airport
+- Met Office
+- Paul S
+- Science Dept. Cambridge University
+Finally, update the institution name in the users collection
+
+Using users.update_one() to set the name of camUni to Science Dept. Cambridge University
+{'_id': 'camUni'}
+By applying the update operation:
+{'$set': {'institution': 'Science Dept. Cambridge University'}}
+Modified 1 document
+Name updated
+
+
+=================================================================================================================
+
+Preparing the Weather Report Storage Size Report
+
+=== Preparing the Weather Report Storage Size Report ===
+
+Pipeline for weather_reports.aggregate():
+[{'$addFields': {'doc_size_bytes': {'$bsonSize': '$$ROOT'},
+                 'month': {'$month': '$date'},
+                 'owner_id': '$owner.user_id',
+                 'year': {'$year': '$date'}}},
+ {'$group': {'_id': {'month': '$month',
+                     'owner_id': '$owner_id',
+                     'year': '$year'},
+             'document_count': {'$sum': 1},
+             'total_storage_bytes': {'$sum': '$doc_size_bytes'}}},
+ {'$out': 'weather_report_storage_report'}]
+
+=== Preparing the Top Five Users of Storage Report ===
+Get the top five users of database storage (with regard to weather reports)
+
+Pipeline for weather_report_storage_report.aggregate():
+[{'$group': {'_id': '$_id.owner_id',
+             'total_bytes': {'$sum': '$total_storage_bytes'}}},
+ {'$project': {'_id': 0,
+               'owner_id': '$_id',
+               'total_storage_MB': {'$round': [{'$divide': ['$total_bytes',
+                                                            1048576]},
+                                               2]}}},
+ {'$sort': {'total_storage_MB': -1}},
+ {'$limit': 5}]
+Aggregation found 5 documents.
+[{'owner_id': 'metoff1', 'total_storage_MB': 111.21},
+ {'owner_id': 'ps2004', 'total_storage_MB': 8.64},
+ {'owner_id': 'camUni', 'total_storage_MB': 8.57},
+ {'owner_id': 'heathAir', 'total_storage_MB': 8.56},
+ {'owner_id': 'gatAir', 'total_storage_MB': 8.55}]
+
+=================================================================================================================
+
+=== Test the creation of a Weather Extremes report for Glasgow and Southampton ===
+
+=== Preparing the Weather Extremes Report for Station WS-GLA001===
+
+Pipeline for weather_reports.aggregate():
+[{'$match': {'$or': [{'day_summary.temp_min': {'$lt': -5}},
+                     {'day_summary.temp_max': {'$gt': 28}},
+                     {'day_summary.wind_speed_max': {'$gt': 12}},
+                     {'day_summary.precip_sum': {'$gt': 15}}],
+             'station.station_id': 'WS-GLA001'}},
+ {'$addFields': {'extreme_temp': {'$cond': [{'$lt': ['$day_summary.temp_min',
+                                                     0]},
+                                            'Very Cold',
+                                            {'$cond': [{'$gt': ['$day_summary.temp_max',
+                                                                28]},
+                                                       'Very Hot',
+                                                       None]}]},
+                 'extreme_weather': {'$cond': [{'$and': [{'$gt': ['$day_summary.wind_speed_max',
+                                                                  12]},
+                                                         {'$gt': ['$day_summary.precip_sum',
+                                                                  15]}]},
+                                               'Storm',
+                                               {'$cond': [{'$gt': ['$day_summary.wind_speed_max',
+                                                                   12]},
+                                                          'Strong Winds',
+                                                          {'$cond': [{'$gt': ['$day_summary.precip_sum',
+                                                                              15]},
+                                                                     'Heavy '
+                                                                     'Rain',
+                                                                     None]}]}]}}},
+ {'$project': {'_id': {'$concat': [{'$toString': '$station.station_id'},
+                                   '-',
+                                   {'$dateToString': {'date': '$date',
+                                                      'format': '%Y%m%d'}}]},
+               'date': 1,
+               'extreme_temp': 1,
+               'extreme_weather': 1,
+               'precip_sum': '$day_summary.precip_sum',
+               'station_id': '$station.station_id',
+               'station_name': '$station.name',
+               'temp_max': '$day_summary.temp_max',
+               'temp_min': '$day_summary.temp_min',
+               'wind_speed_max': '$day_summary.wind_speed_max'}},
+ {'$merge': {'into': 'weather_extremes',
+             'on': '_id',
+             'whenMatched': 'replace',
+             'whenNotMatched': 'insert'}}]
+
+=================================================================================================================
+
+
+=== Preparing the Weather Extremes Report for Station WS-SOU001===
+
+Pipeline for weather_reports.aggregate():
+[{'$match': {'$or': [{'day_summary.temp_min': {'$lt': -5}},
+                     {'day_summary.temp_max': {'$gt': 28}},
+                     {'day_summary.wind_speed_max': {'$gt': 12}},
+                     {'day_summary.precip_sum': {'$gt': 15}}],
+             'station.station_id': 'WS-SOU001'}},
+ {'$addFields': {'extreme_temp': {'$cond': [{'$lt': ['$day_summary.temp_min',
+                                                     0]},
+                                            'Very Cold',
+                                            {'$cond': [{'$gt': ['$day_summary.temp_max',
+                                                                28]},
+                                                       'Very Hot',
+                                                       None]}]},
+                 'extreme_weather': {'$cond': [{'$and': [{'$gt': ['$day_summary.wind_speed_max',
+                                                                  12]},
+                                                         {'$gt': ['$day_summary.precip_sum',
+                                                                  15]}]},
+                                               'Storm',
+                                               {'$cond': [{'$gt': ['$day_summary.wind_speed_max',
+                                                                   12]},
+                                                          'Strong Winds',
+                                                          {'$cond': [{'$gt': ['$day_summary.precip_sum',
+                                                                              15]},
+                                                                     'Heavy '
+                                                                     'Rain',
+                                                                     None]}]}]}}},
+ {'$project': {'_id': {'$concat': [{'$toString': '$station.station_id'},
+                                   '-',
+                                   {'$dateToString': {'date': '$date',
+                                                      'format': '%Y%m%d'}}]},
+               'date': 1,
+               'extreme_temp': 1,
+               'extreme_weather': 1,
+               'precip_sum': '$day_summary.precip_sum',
+               'station_id': '$station.station_id',
+               'station_name': '$station.name',
+               'temp_max': '$day_summary.temp_max',
+               'temp_min': '$day_summary.temp_min',
+               'wind_speed_max': '$day_summary.wind_speed_max'}},
+ {'$merge': {'into': 'weather_extremes',
+             'on': '_id',
+             'whenMatched': 'replace',
+             'whenNotMatched': 'insert'}}]
+
+=================================================================================================================
+
+
+=================================================================================================================
+
+=== Test read and update of the status field of Weather Stations ===
+=== Weather Stations with status of Offline ===
+
+Search criteria for weather_stations.find():
+{'status': 'Offline'}
+
+Results:
+No results found.
+
+=== Update the weather station WS-NEW002 status to Offline ===
+{'_id': 'WS-NEW002'}
+By applying the update operation:
+{'$set': {'status': 'Offline'}}
+Modified 1 document
+Status updated
+
+=== Update the weather station WS-LIV003 status to Offline ===
+{'_id': 'WS-LIV003'}
+By applying the update operation:
+{'$set': {'status': 'Offline'}}
+Modified 1 document
+Status updated
+=== Weather Stations with status of Offline ===
+
+Search criteria for weather_stations.find():
+{'status': 'Offline'}
+
+Results:
+{'_id': 'WS-LIV003',
+ 'latest_maintenance': {'report': 'Cleaned solar panel.',
+                        'tech_id': 'T-003',
+                        'timestamp': datetime.datetime(2025, 4, 3, 12, 17)},
+ 'location': {'coordinates': [-2.9142761, 53.391914], 'type': 'Point'},
+ 'name': 'Liverpool',
+ 'owner': {'contact': 'Mr Simon Jones',
+           'email': 'stations@metoffice.gov.uk',
+           'name': 'Met Office',
+           'owner_type': 'Government',
+           'telephone': '03709000100',
+           'user_id': 'metoff1'},
+ 'status': 'Offline'}
+{'_id': 'WS-NEW002',
+ 'latest_maintenance': {'report': 'Repaired housing.',
+                        'tech_id': 'T-005',
+                        'timestamp': datetime.datetime(2025, 4, 2, 10, 30)},
+ 'location': {'coordinates': [-1.6103516, 54.938488], 'type': 'Point'},
+ 'name': 'Newcastle',
+ 'owner': {'contact': 'Mr Simon Jones',
+           'email': 'stations@metoffice.gov.uk',
+           'name': 'Met Office',
+           'owner_type': 'Government',
+           'telephone': '03709000100',
+           'user_id': 'metoff1'},
+ 'status': 'Offline'}
+
+=== Update the weather station WS-NEW002 status to Online ===
+{'_id': 'WS-NEW002'}
+By applying the update operation:
+{'$set': {'status': 'Online'}}
+Modified 1 document
+Status updated
+
+=== Update the weather station WS-LIV003 status to Online ===
+{'_id': 'WS-LIV003'}
+By applying the update operation:
+{'$set': {'status': 'Online'}}
+Modified 1 document
+Status updated
+
+=================================================================================================================
+
+
+=== Scenario to create a new weather report, add hourly readings, and compute day summary ===
+
+Inserting weather report for London 10th April 2025 - for each test, using 10th April 2025 as the modification date
+
+Using weather_reports.insert_one() to add a weather report
+Document being inserted:
+{'date': datetime.datetime(2025, 4, 10, 0, 0),
+ 'last_modified': datetime.datetime(2025, 4, 10, 0, 0),
+ 'location': {'coordinates': [-0.1630249, 51.493847], 'type': 'Point'},
+ 'owner': {'name': 'Met Office',
+           'owner_type': 'Government',
+           'user_id': 'metoff1'},
+ 'readings': [],
+ 'station': {'name': 'London', 'station_id': 'WS-LON002'},
+ 'version': 1}
+Inserted 6840974e6dee57c1e150728f
+
+Inserting weather station reading for London 10th April 2025 - midnight
+
+Using weather_reports.update_one() to add a reading to the weather report, using this filter:
+{'_id': ObjectId('6840974e6dee57c1e150728f')}
+And this update operation:
+{'$inc': {'version': 1},
+ '$push': {'readings': {'cloud_cover': 25,
+                        'dewpoint': 2.5,
+                        'humidity': 76,
+                        'precip': 0,
+                        'pressure': 1032.7,
+                        'sample_duration': 3600,
+                        'soil': {'0_to_7cm': {'moisture': 0.012, 'temp': 9.6},
+                                 '100_to_255cm': {'moisture': 0.291, 'temp': 8},
+                                 '28_to_100cm': {'moisture': 0.28,
+                                                 'temp': 10.3},
+                                 '7_to_28cm': {'moisture': 0.126,
+                                               'temp': 11.7}},
+                        'sunshine': 0,
+                        'temp': 6.5,
+                        'timestamp': datetime.datetime(2025, 4, 10, 0, 0),
+                        'wind_direction': 43,
+                        'wind_speed': 2.62}},
+ '$set': {'last_modified': datetime.datetime(2025, 4, 10, 0, 0)}}
+
+Modified 1 document
+
+Computing the day_summary sub-document using the pipeline:
+[{'$match': {'_id': ObjectId('6840974e6dee57c1e150728f')}},
+ {'$unwind': '$readings'},
+ {'$group': {'_id': '$_id',
+             'cloud_cover_mean': {'$avg': '$readings.cloud_cover'},
+             'dewpoint_mean': {'$avg': '$readings.dewpoint'},
+             'humidity_max': {'$max': '$readings.humidity'},
+             'humidity_mean': {'$avg': '$readings.humidity'},
+             'humidity_min': {'$min': '$readings.humidity'},
+             'precip_sum': {'$sum': '$readings.precip'},
+             'pressure_max': {'$max': '$readings.pressure'},
+             'pressure_mean': {'$avg': '$readings.pressure'},
+             'pressure_min': {'$min': '$readings.pressure'},
+             'sunshine': {'$sum': '$readings.sunshine'},
+             'temp_max': {'$max': '$readings.temp'},
+             'temp_mean': {'$avg': '$readings.temp'},
+             'temp_min': {'$min': '$readings.temp'},
+             'wind_speed_max': {'$max': '$readings.wind_speed'},
+             'wind_speed_mean': {'$avg': '$readings.wind_speed'},
+             'wind_speed_min': {'$min': '$readings.wind_speed'}}}]
+Aggregation found 1 documents.
+
+Add the day_summary into the weather_report using update_one() and increment the version number, using this filter:
+{'_id': ObjectId('6840974e6dee57c1e150728f')}
+And this update operation:
+{'$inc': {'version': 1},
+ '$set': {'day_summary': {'cloud_cover_mean': 25.0,
+                          'dewpoint_mean': 2.5,
+                          'humidity_max': 76,
+                          'humidity_mean': 76.0,
+                          'humidity_min': 76,
+                          'precip_sum': 0,
+                          'pressure_max': 1032.7,
+                          'pressure_mean': 1032.7,
+                          'pressure_min': 1032.7,
+                          'sunshine': 0,
+                          'temp_max': 6.5,
+                          'temp_mean': 6.5,
+                          'temp_min': 6.5,
+                          'wind_speed_max': 2.62,
+                          'wind_speed_mean': 2.62,
+                          'wind_speed_min': 2.62}}}
+
+Modified 1 document
+
+Inserting weather station reading for London 10th April 2025 - 1am
+
+Using weather_reports.update_one() to add a reading to the weather report, using this filter:
+{'_id': ObjectId('6840974e6dee57c1e150728f')}
+And this update operation:
+{'$inc': {'version': 1},
+ '$push': {'readings': {'cloud_cover': 24,
+                        'dewpoint': 1.8,
+                        'humidity': 75,
+                        'precip': 0,
+                        'pressure': 1032.7,
+                        'sample_duration': 3600,
+                        'soil': {'0_to_7cm': {'moisture': 0.01, 'temp': 8.9},
+                                 '100_to_255cm': {'moisture': 0.291, 'temp': 8},
+                                 '28_to_100cm': {'moisture': 0.28,
+                                                 'temp': 10.3},
+                                 '7_to_28cm': {'moisture': 0.126,
+                                               'temp': 11.7}},
+                        'sunshine': 0,
+                        'temp': 6,
+                        'timestamp': datetime.datetime(2025, 4, 10, 1, 0),
+                        'wind_direction': 38,
+                        'wind_speed': 2.21}},
+ '$set': {'last_modified': datetime.datetime(2025, 4, 10, 1, 0)}}
+
+Modified 1 document
+
+Computing the day_summary sub-document using the pipeline:
+[{'$match': {'_id': ObjectId('6840974e6dee57c1e150728f')}},
+ {'$unwind': '$readings'},
+ {'$group': {'_id': '$_id',
+             'cloud_cover_mean': {'$avg': '$readings.cloud_cover'},
+             'dewpoint_mean': {'$avg': '$readings.dewpoint'},
+             'humidity_max': {'$max': '$readings.humidity'},
+             'humidity_mean': {'$avg': '$readings.humidity'},
+             'humidity_min': {'$min': '$readings.humidity'},
+             'precip_sum': {'$sum': '$readings.precip'},
+             'pressure_max': {'$max': '$readings.pressure'},
+             'pressure_mean': {'$avg': '$readings.pressure'},
+             'pressure_min': {'$min': '$readings.pressure'},
+             'sunshine': {'$sum': '$readings.sunshine'},
+             'temp_max': {'$max': '$readings.temp'},
+             'temp_mean': {'$avg': '$readings.temp'},
+             'temp_min': {'$min': '$readings.temp'},
+             'wind_speed_max': {'$max': '$readings.wind_speed'},
+             'wind_speed_mean': {'$avg': '$readings.wind_speed'},
+             'wind_speed_min': {'$min': '$readings.wind_speed'}}}]
+Aggregation found 1 documents.
+
+Add the day_summary into the weather_report using update_one() and increment the version number, using this filter:
+{'_id': ObjectId('6840974e6dee57c1e150728f')}
+And this update operation:
+{'$inc': {'version': 1},
+ '$set': {'day_summary': {'cloud_cover_mean': 24.5,
+                          'dewpoint_mean': 2.15,
+                          'humidity_max': 76,
+                          'humidity_mean': 75.5,
+                          'humidity_min': 75,
+                          'precip_sum': 0,
+                          'pressure_max': 1032.7,
+                          'pressure_mean': 1032.7,
+                          'pressure_min': 1032.7,
+                          'sunshine': 0,
+                          'temp_max': 6.5,
+                          'temp_mean': 6.25,
+                          'temp_min': 6,
+                          'wind_speed_max': 2.62,
+                          'wind_speed_mean': 2.415,
+                          'wind_speed_min': 2.21}}}
+
+Modified 1 document
+
+Inserting weather station reading for London 10th April 2025 - 2am
+
+Using weather_reports.update_one() to add a reading to the weather report, using this filter:
+{'_id': ObjectId('6840974e6dee57c1e150728f')}
+And this update operation:
+{'$inc': {'version': 1},
+ '$push': {'readings': {'cloud_cover': 44,
+                        'dewpoint': 2,
+                        'humidity': 77,
+                        'precip': 1.1,
+                        'pressure': 1032.5,
+                        'sample_duration': 3600,
+                        'soil': {'0_to_7cm': {'moisture': 0.01, 'temp': 8.1},
+                                 '100_to_255cm': {'moisture': 0.291, 'temp': 8},
+                                 '28_to_100cm': {'moisture': 0.279,
+                                                 'temp': 10.3},
+                                 '7_to_28cm': {'moisture': 0.126,
+                                               'temp': 11.6}},
+                        'sunshine': 0,
+                        'temp': 5.6,
+                        'timestamp': datetime.datetime(2025, 4, 10, 2, 0),
+                        'wind_direction': 35,
+                        'wind_speed': 2.08}},
+ '$set': {'last_modified': datetime.datetime(2025, 4, 10, 2, 0)}}
+
+Modified 1 document
+
+Computing the day_summary sub-document using the pipeline:
+[{'$match': {'_id': ObjectId('6840974e6dee57c1e150728f')}},
+ {'$unwind': '$readings'},
+ {'$group': {'_id': '$_id',
+             'cloud_cover_mean': {'$avg': '$readings.cloud_cover'},
+             'dewpoint_mean': {'$avg': '$readings.dewpoint'},
+             'humidity_max': {'$max': '$readings.humidity'},
+             'humidity_mean': {'$avg': '$readings.humidity'},
+             'humidity_min': {'$min': '$readings.humidity'},
+             'precip_sum': {'$sum': '$readings.precip'},
+             'pressure_max': {'$max': '$readings.pressure'},
+             'pressure_mean': {'$avg': '$readings.pressure'},
+             'pressure_min': {'$min': '$readings.pressure'},
+             'sunshine': {'$sum': '$readings.sunshine'},
+             'temp_max': {'$max': '$readings.temp'},
+             'temp_mean': {'$avg': '$readings.temp'},
+             'temp_min': {'$min': '$readings.temp'},
+             'wind_speed_max': {'$max': '$readings.wind_speed'},
+             'wind_speed_mean': {'$avg': '$readings.wind_speed'},
+             'wind_speed_min': {'$min': '$readings.wind_speed'}}}]
+Aggregation found 1 documents.
+
+Add the day_summary into the weather_report using update_one() and increment the version number, using this filter:
+{'_id': ObjectId('6840974e6dee57c1e150728f')}
+And this update operation:
+{'$inc': {'version': 1},
+ '$set': {'day_summary': {'cloud_cover_mean': 31.0,
+                          'dewpoint_mean': 2.1,
+                          'humidity_max': 77,
+                          'humidity_mean': 76.0,
+                          'humidity_min': 75,
+                          'precip_sum': 1.1,
+                          'pressure_max': 1032.7,
+                          'pressure_mean': 1032.6333333333334,
+                          'pressure_min': 1032.5,
+                          'sunshine': 0,
+                          'temp_max': 6.5,
+                          'temp_mean': 6.033333333333334,
+                          'temp_min': 5.6,
+                          'wind_speed_max': 2.62,
+                          'wind_speed_mean': 2.3033333333333332,
+                          'wind_speed_min': 2.08}}}
+
+Modified 1 document
+
+Weather Report:
+{'_id': ObjectId('6840974e6dee57c1e150728f'),
+ 'date': datetime.datetime(2025, 4, 10, 0, 0),
+ 'day_summary': {'cloud_cover_mean': 31.0,
+                 'dewpoint_mean': 2.1,
+                 'humidity_max': 77,
+                 'humidity_mean': 76.0,
+                 'humidity_min': 75,
+                 'precip_sum': 1.1,
+                 'pressure_max': 1032.7,
+                 'pressure_mean': 1032.6333333333334,
+                 'pressure_min': 1032.5,
+                 'sunshine': 0,
+                 'temp_max': 6.5,
+                 'temp_mean': 6.033333333333334,
+                 'temp_min': 5.6,
+                 'wind_speed_max': 2.62,
+                 'wind_speed_mean': 2.3033333333333332,
+                 'wind_speed_min': 2.08},
+ 'last_modified': datetime.datetime(2025, 4, 10, 2, 0),
+ 'location': {'coordinates': [-0.1630249, 51.493847], 'type': 'Point'},
+ 'owner': {'name': 'Met Office',
+           'owner_type': 'Government',
+           'user_id': 'metoff1'},
+ 'readings': [{'cloud_cover': 25,
+               'dewpoint': 2.5,
+               'humidity': 76,
+               'precip': 0,
+               'pressure': 1032.7,
+               'sample_duration': 3600,
+               'soil': {'0_to_7cm': {'moisture': 0.012, 'temp': 9.6},
+                        '100_to_255cm': {'moisture': 0.291, 'temp': 8},
+                        '28_to_100cm': {'moisture': 0.28, 'temp': 10.3},
+                        '7_to_28cm': {'moisture': 0.126, 'temp': 11.7}},
+               'sunshine': 0,
+               'temp': 6.5,
+               'timestamp': datetime.datetime(2025, 4, 10, 0, 0),
+               'wind_direction': 43,
+               'wind_speed': 2.62},
+              {'cloud_cover': 24,
+               'dewpoint': 1.8,
+               'humidity': 75,
+               'precip': 0,
+               'pressure': 1032.7,
+               'sample_duration': 3600,
+               'soil': {'0_to_7cm': {'moisture': 0.01, 'temp': 8.9},
+                        '100_to_255cm': {'moisture': 0.291, 'temp': 8},
+                        '28_to_100cm': {'moisture': 0.28, 'temp': 10.3},
+                        '7_to_28cm': {'moisture': 0.126, 'temp': 11.7}},
+               'sunshine': 0,
+               'temp': 6,
+               'timestamp': datetime.datetime(2025, 4, 10, 1, 0),
+               'wind_direction': 38,
+               'wind_speed': 2.21},
+              {'cloud_cover': 44,
+               'dewpoint': 2,
+               'humidity': 77,
+               'precip': 1.1,
+               'pressure': 1032.5,
+               'sample_duration': 3600,
+               'soil': {'0_to_7cm': {'moisture': 0.01, 'temp': 8.1},
+                        '100_to_255cm': {'moisture': 0.291, 'temp': 8},
+                        '28_to_100cm': {'moisture': 0.279, 'temp': 10.3},
+                        '7_to_28cm': {'moisture': 0.126, 'temp': 11.6}},
+               'sunshine': 0,
+               'temp': 5.6,
+               'timestamp': datetime.datetime(2025, 4, 10, 2, 0),
+               'wind_direction': 35,
+               'wind_speed': 2.08}],
+ 'station': {'name': 'London', 'station_id': 'WS-LON002'},
+ 'version': 7}
+
+=================================================================================================================
+
+
+=== Count Weather Report for Station WS-WW1001 ===
+
+Filter for weather_reports.count_documents():
+{'station.station_id': 'WS-WW1001'}
+830 documents found
+
+=================================================================================================================
+
+
+=== Delete Weather Report for Station WS-WW1001 from 2024-02-01 to 2024-02-04 ===
+
+Filter for weather_reports.delete_many():
+{'date': {'$gte': datetime.datetime(2024, 2, 1, 0, 0),
+          '$lte': datetime.datetime(2024, 2, 4, 0, 0)},
+ 'station.station_id': 'WS-WW1001'}
+Deleted 4 documents
+
+=================================================================================================================
+
+
+=== Count Weather Report for Station WS-WW1001 ===
+
+Filter for weather_reports.count_documents():
+{'station.station_id': 'WS-WW1001'}
+826 documents found
+
+=================================================================================================================
+
+
+=== Rename 'Cambridge University' to 'Science Dept. Cambridge University' ===
+First get the Distinct owner names in the weather_reports collection
+
+Using weather_reports.distinct("owner.name") to get distinct owner names in weather_reports:
+- Cambridge University
+- Gatwick Airport
+- Heathrow Airport
+- Met Office
+- Paul S
+- Simon
+Show the version number and last modified date of a weather report BEFORE update
+Latest weather report for camUni:
+{'_id': ObjectId('68409716642ccbc52914d9bc'),
+ 'date': datetime.datetime(2025, 4, 9, 0, 0),
+ 'last_modified': datetime.datetime(2025, 4, 9, 23, 59, 59),
+ 'owner': {'name': 'Cambridge University',
+           'owner_type': 'University',
+           'user_id': 'camUni'},
+ 'version': 1}
+
+Using weather_reports.update_many() to rename the owner of the documents matching:
+{'owner.user_id': 'camUni'}
+By applying the update operation:
+{'$inc': {'version': 1},
+ '$set': {'last_modified': datetime.datetime(2025, 5, 1, 19, 58, 22),
+          'owner.name': 'Science Dept. Cambridge University'}}
+
+Modified 830 documents
+Show the version number and last modified date of the weather report AFTER update
+Latest weather report for camUni:
+{'_id': ObjectId('68409716642ccbc52914d9bc'),
+ 'date': datetime.datetime(2025, 4, 9, 0, 0),
+ 'last_modified': datetime.datetime(2025, 5, 1, 19, 58, 22),
+ 'owner': {'name': 'Science Dept. Cambridge University',
+           'owner_type': 'University',
+           'user_id': 'camUni'},
+ 'version': 2}
+
+Get the Distinct owner names again to prove the update has applied to all documents
+
+Using weather_reports.distinct("owner.name") to get distinct owner names in weather_reports:
+- Gatwick Airport
+- Heathrow Airport
+- Met Office
+- Paul S
+- Science Dept. Cambridge University
+- Simon
+Now get the Distinct owner names in the weather_stations collection
+
+Using weather_stations.distinct("owner.name") to get distinct owner names in weather_stations:
+- Cambridge University
+- Gatwick Airport
+- Heathrow Airport
+- Met Office
+- Paul S
+
+Using weather_stations.update_many() to rename the owner of the documents matching:
+{'owner.user_id': 'camUni'}
+By applying the update operation:
+{'$set': {'owner.name': 'Science Dept. Cambridge University'}}
+
+Modified 1 documents
+
+Get the Distinct owner names again to prove the update has applied to all documents
+
+Using weather_stations.distinct("owner.name") to get distinct owner names in weather_stations:
+- Gatwick Airport
+- Heathrow Airport
+- Met Office
+- Paul S
+- Science Dept. Cambridge University
+Finally, update the institution name in the users collection
+
+Using users.update_one() to set the name of camUni to Science Dept. Cambridge University
+{'_id': 'camUni'}
+By applying the update operation:
+{'$set': {'institution': 'Science Dept. Cambridge University'}}
+Modified 1 document
+Name updated
+
+
+=================================================================================================================
+
+Preparing the Weather Report Storage Size Report
+
+=== Preparing the Weather Report Storage Size Report ===
+
+Pipeline for weather_reports.aggregate():
+[{'$addFields': {'doc_size_bytes': {'$bsonSize': '$$ROOT'},
+                 'month': {'$month': '$date'},
+                 'owner_id': '$owner.user_id',
+                 'year': {'$year': '$date'}}},
+ {'$group': {'_id': {'month': '$month',
+                     'owner_id': '$owner_id',
+                     'year': '$year'},
+             'document_count': {'$sum': 1},
+             'total_storage_bytes': {'$sum': '$doc_size_bytes'}}},
+ {'$out': 'weather_report_storage_report'}]
+
+=== Preparing the Top Five Users of Storage Report ===
+Get the top five users of database storage (with regard to weather reports)
+
+Pipeline for weather_report_storage_report.aggregate():
+[{'$group': {'_id': '$_id.owner_id',
+             'total_bytes': {'$sum': '$total_storage_bytes'}}},
+ {'$project': {'_id': 0,
+               'owner_id': '$_id',
+               'total_storage_MB': {'$round': [{'$divide': ['$total_bytes',
+                                                            1048576]},
+                                               2]}}},
+ {'$sort': {'total_storage_MB': -1}},
+ {'$limit': 5}]
+Aggregation found 5 documents.
+[{'owner_id': 'metoff1', 'total_storage_MB': 111.21},
+ {'owner_id': 'ps2004', 'total_storage_MB': 8.64},
+ {'owner_id': 'camUni', 'total_storage_MB': 8.57},
+ {'owner_id': 'heathAir', 'total_storage_MB': 8.56},
+ {'owner_id': 'gatAir', 'total_storage_MB': 8.55}]
+
+=================================================================================================================
+
+=== Test the creation of a Weather Extremes report for Glasgow and Southampton ===
+
+=== Preparing the Weather Extremes Report for Station WS-GLA001===
+
+Pipeline for weather_reports.aggregate():
+[{'$match': {'$or': [{'day_summary.temp_min': {'$lt': -5}},
+                     {'day_summary.temp_max': {'$gt': 28}},
+                     {'day_summary.wind_speed_max': {'$gt': 12}},
+                     {'day_summary.precip_sum': {'$gt': 15}}],
+             'station.station_id': 'WS-GLA001'}},
+ {'$addFields': {'extreme_temp': {'$cond': [{'$lt': ['$day_summary.temp_min',
+                                                     0]},
+                                            'Very Cold',
+                                            {'$cond': [{'$gt': ['$day_summary.temp_max',
+                                                                28]},
+                                                       'Very Hot',
+                                                       None]}]},
+                 'extreme_weather': {'$cond': [{'$and': [{'$gt': ['$day_summary.wind_speed_max',
+                                                                  12]},
+                                                         {'$gt': ['$day_summary.precip_sum',
+                                                                  15]}]},
+                                               'Storm',
+                                               {'$cond': [{'$gt': ['$day_summary.wind_speed_max',
+                                                                   12]},
+                                                          'Strong Winds',
+                                                          {'$cond': [{'$gt': ['$day_summary.precip_sum',
+                                                                              15]},
+                                                                     'Heavy '
+                                                                     'Rain',
+                                                                     None]}]}]}}},
+ {'$project': {'_id': {'$concat': [{'$toString': '$station.station_id'},
+                                   '-',
+                                   {'$dateToString': {'date': '$date',
+                                                      'format': '%Y%m%d'}}]},
+               'date': 1,
+               'extreme_temp': 1,
+               'extreme_weather': 1,
+               'precip_sum': '$day_summary.precip_sum',
+               'station_id': '$station.station_id',
+               'station_name': '$station.name',
+               'temp_max': '$day_summary.temp_max',
+               'temp_min': '$day_summary.temp_min',
+               'wind_speed_max': '$day_summary.wind_speed_max'}},
+ {'$merge': {'into': 'weather_extremes',
+             'on': '_id',
+             'whenMatched': 'replace',
+             'whenNotMatched': 'insert'}}]
+
+=================================================================================================================
+
+
+=== Preparing the Weather Extremes Report for Station WS-SOU001===
+
+Pipeline for weather_reports.aggregate():
+[{'$match': {'$or': [{'day_summary.temp_min': {'$lt': -5}},
+                     {'day_summary.temp_max': {'$gt': 28}},
+                     {'day_summary.wind_speed_max': {'$gt': 12}},
+                     {'day_summary.precip_sum': {'$gt': 15}}],
+             'station.station_id': 'WS-SOU001'}},
+ {'$addFields': {'extreme_temp': {'$cond': [{'$lt': ['$day_summary.temp_min',
+                                                     0]},
+                                            'Very Cold',
+                                            {'$cond': [{'$gt': ['$day_summary.temp_max',
+                                                                28]},
+                                                       'Very Hot',
+                                                       None]}]},
+                 'extreme_weather': {'$cond': [{'$and': [{'$gt': ['$day_summary.wind_speed_max',
+                                                                  12]},
+                                                         {'$gt': ['$day_summary.precip_sum',
+                                                                  15]}]},
+                                               'Storm',
+                                               {'$cond': [{'$gt': ['$day_summary.wind_speed_max',
+                                                                   12]},
+                                                          'Strong Winds',
+                                                          {'$cond': [{'$gt': ['$day_summary.precip_sum',
+                                                                              15]},
+                                                                     'Heavy '
+                                                                     'Rain',
+                                                                     None]}]}]}}},
+ {'$project': {'_id': {'$concat': [{'$toString': '$station.station_id'},
+                                   '-',
+                                   {'$dateToString': {'date': '$date',
+                                                      'format': '%Y%m%d'}}]},
+               'date': 1,
+               'extreme_temp': 1,
+               'extreme_weather': 1,
+               'precip_sum': '$day_summary.precip_sum',
+               'station_id': '$station.station_id',
+               'station_name': '$station.name',
+               'temp_max': '$day_summary.temp_max',
+               'temp_min': '$day_summary.temp_min',
+               'wind_speed_max': '$day_summary.wind_speed_max'}},
+ {'$merge': {'into': 'weather_extremes',
+             'on': '_id',
+             'whenMatched': 'replace',
+             'whenNotMatched': 'insert'}}]
+
+=================================================================================================================
+
+
+=================================================================================================================
+
